@@ -102,9 +102,9 @@ fun HomeScreen(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Column {
+                Column(modifier = Modifier.weight(1f)) {
                     Text("SAM Tracker", fontSize = 24.sp, fontWeight = FontWeight.SemiBold, color = titleColor)
-                    Text("Madhya Pradesh • Sector Block 04", fontSize = 14.sp, fontWeight = FontWeight.Medium, color = subtitleColor)
+                    Text("Department of Community and Family Medicine,\nAll India Institute of Medical Sciences, Bhopal", fontSize = 12.sp, fontWeight = FontWeight.Medium, color = subtitleColor)
                 }
                 Box(
                     modifier = Modifier

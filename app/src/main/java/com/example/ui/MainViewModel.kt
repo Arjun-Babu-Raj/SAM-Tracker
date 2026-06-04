@@ -176,11 +176,14 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 val baselines = repository.getAllBaselines().associateBy { it.studyId }
                 val followups = repository.getAllFollowups().groupBy { it.studyId }
 
+                val bFields = QuestionBank.allBaselineFields.map { it.id }
+                
                 val csvBuilder = StringBuilder()
                 csvBuilder.append("StudyID,CSAM_ID,ChildName,Sex,AWC,Sector,")
                 csvBuilder.append("HouseholdID,FamilyType,FamilyMembers,MonthlyIncome,")
                 csvBuilder.append("Baseline_WeightEnrol,Baseline_Weight12,Baseline_HeightEnrol,Baseline_Height12,Baseline_Outcome,")
-                csvBuilder.append("Followups\n")
+                bFields.forEach { csvBuilder.append("Base_${it},") }
+                csvBuilder.append("FollowupsRawData\n")
                 
                 for (child in children) {
                     val hh = households[child.householdId]
@@ -190,7 +193,26 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     csvBuilder.append("${child.studyId},${child.csamId},${child.childName},${child.sex},${child.awcName},${child.sectorBlockDistrict},")
                     csvBuilder.append("${hh?.householdId},${hh?.familyType},${hh?.totalFamilyMembers},${hh?.monthlyIncome},")
                     csvBuilder.append("${b?.weightEnrolment},${b?.weight12Weeks},${b?.heightEnrolment},${b?.height12Weeks},${b?.programmeOutcome},")
-                    csvBuilder.append("${fs.joinToString("|") { it.followupRound + ":" + it.currentStatus + ":" + it.weight }}\n")
+                    
+                    if (b != null) {
+                        try {
+                            val json = org.json.JSONObject(b.extraDataJson)
+                            bFields.forEach { field ->
+                                val value = json.optString(field, "").replace(",", " ") // avoid csv break
+                                csvBuilder.append("$value,")
+                            }
+                        } catch (e: Exception) {
+                            bFields.forEach { csvBuilder.append(",") }
+                        }
+                    } else {
+                        bFields.forEach { csvBuilder.append(",") }
+                    }
+                    
+                    val followupsStr = fs.joinToString(" || ") { 
+                         val fJson = try { org.json.JSONObject(it.extraDataJson).toString() } catch(e: Exception) { "{}" }
+                         "Round: ${it.followupRound}, WHZ: ${it.whz}, Status: ${it.currentStatus}, Data: $fJson"
+                    }.replace(",", ";") // avoid breaking csv
+                    csvBuilder.append("$followupsStr\n")
                 }
                 
                 context.contentResolver.openOutputStream(uri)?.use { outputStream ->
